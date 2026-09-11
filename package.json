@@ -1,0 +1,16 @@
+{
+  "name": "crm-notification-relay",
+  "version": "1.0.0",
+  "description": "Free replacement for Firebase Cloud Functions (no Blaze plan / card needed). Watches the fcmQueue Firestore collection and sends the actual FCM push notification.",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "firebase-admin": "^12.6.0"
+  }
+}
