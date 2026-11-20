@@ -56,6 +56,42 @@ app.get("/health", (req, res) => {
 });
 app.get("/", (req, res) => res.redirect("/health"));
 
+// ── Admin: set a customer password (used by the CRM app, Admin only) ────────
+app.use(express.json());
+app.post("/admin/set-password", async (req, res) => {
+  try {
+    const authz = req.headers.authorization || "";
+    const idToken = authz.startsWith("Bearer ") ? authz.slice(7) : null;
+    if (!idToken) return res.status(401).json({ error: "Missing token" });
+
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const caller = await db.collection("users").doc(decoded.uid).get();
+    if (caller.data()?.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    const { uid, password } = req.body || {};
+    if (!uid || typeof password !== "string" || password.length < 6) {
+      return res
+        .status(400)
+        .json({ error: "uid and password (min 6 characters) required" });
+    }
+
+    await admin.auth().updateUser(uid, { password });
+    await db
+      .collection("customerSecrets")
+      .doc(uid)
+      .set(
+        { password, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("set-password failed:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Relay listening on port ${PORT}`));
 
